@@ -52,31 +52,13 @@ async function httpCreateNewUser(
 
 async function httpSignIn(
   req: { body: { email: string; password: string } },
-  res: {
-    status: (arg0: number) => {
-      (): any;
-      new (): any;
-      send: { (arg0: { error: any }): any; new (): any };
-      json: {
-        (arg0: { success: boolean; message: string; user: any }): void;
-        new (): any;
-      };
-    };
-    cookie: (
-      arg0: string,
-      arg1: string,
-      arg2: {
-        httpOnly: boolean;
-        secure: boolean;
-        sameSite: string;
-        maxAge: number;
-      }
-    ) => void;
-  }
-) {
+  res: Response
+): Promise<Response> {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).send({ error: "Email and password are required" });
+    return res
+      .status(400)
+      .send({ success: false, error: "Email and password are required" });
   }
 
   try {
@@ -84,6 +66,11 @@ async function httpSignIn(
       email,
       password,
     });
+    if (error) {
+      return res
+        .status(401)
+        .send({ success: false, error: error.details[0].message });
+    }
     const user = await signIn({ email, password });
     const jwtExpiryInSeconds = parseInt(process.env.JWT_EXPIRY || "3600", 10);
 
@@ -93,7 +80,7 @@ async function httpSignIn(
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: jwtExpiryInSeconds * 1000,
     });
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "User signed in successfully",
       user,
@@ -103,28 +90,15 @@ async function httpSignIn(
       error.message === "User does not exist" ||
       error.message === "Password is incorrect"
     ) {
-      return res.status(401).send({ error: error.message });
+      return res.status(401).send({ success: false, error: error.message });
     }
-    return res.status(500).send({ error: error.message });
+    return res.status(500).send({ success: false, error: error.message });
   }
 }
 
-async function httpSignOut(
-  req: any,
-  res: {
-    clearCookie: (arg0: string) => void;
-    status: (arg0: number) => {
-      (): any;
-      new (): any;
-      json: {
-        (arg0: { success: boolean; message: string }): void;
-        new (): any;
-      };
-    };
-  }
-) {
+async function httpSignOut(req: Request, res: Response): Promise<Response> {
   res.clearCookie("Authorization");
-  res.status(200).json({ success: true, message: "User signed out" });
+  return res.status(200).json({ success: true, message: "User signed out" });
 }
 
 async function httpVerifyUser(
