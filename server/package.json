@@ -6,7 +6,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "nodemon src/server.ts",
-    "start": "ts-node src/server.ts"
+    "start": "NODE_ENV=production pm2 start dist/server.js --name server --watch",
+    "build": "tsc",
+    "prod": "NODE_ENV=production pm2 start dist/server.js --name server",
+    "dev": "pm2 start src/server.ts --name server --watch --exec ts-node",
+    "stop": "pm2 stop server",
+    "restart": "pm2 restart server"
   },
   "author": "",
   "license": "ISC",
@@ -29,6 +34,7 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.4",
     "nodemon": "^3.1.9",
+    "pm2": "^5.4.3",
     "ts-node": "^10.9.2"
   }
 }
