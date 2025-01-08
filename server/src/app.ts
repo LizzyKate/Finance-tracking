@@ -4,7 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const cookierParser = require("cookie-parser");
 const bodyParser = require("body-parser");
-const userRouter = require("./routes/user/user.router.js");
+const userRouter = require("./routes/user/user.router.ts");
 
 const app = express();
 

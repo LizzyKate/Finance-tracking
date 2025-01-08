@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { transporter } from "../middleware/sendMail";
 import crypto from "crypto";
+import e from "express";
 
 dotenv.config();
 
@@ -79,7 +80,7 @@ async function signIn(user: UserInput) {
   }
 }
 
-async function verifyUser(user: UserInput) {
+async function sendVerificationCode(user: { email: string }) {
   try {
     const existingUser = await User.findOne({ email: user.email });
     if (!existingUser) {
@@ -104,7 +105,6 @@ async function verifyUser(user: UserInput) {
       await User.updateOne(
         { email: user.email },
         {
-          verified: true,
           verificationToken: hashedCodeValue,
           verificationTokenValidation: Date.now(),
         }
@@ -117,4 +117,92 @@ async function verifyUser(user: UserInput) {
   }
 }
 
-export { createUser, signIn, verifyUser };
+async function verifyVerificationCode(user: {
+  email: string;
+  verificationCode: string;
+}) {
+  try {
+    const codeValue = user.verificationCode;
+    const existingUser = await User.findOne({ email: user.email }).select(
+      "+verificationToken +verificationTokenValidation"
+    );
+
+    if (!existingUser) {
+      throw new Error("User does not exist");
+    }
+    if (existingUser.verified) {
+      throw new Error("User is already verified");
+    }
+
+    if (
+      !existingUser.verificationToken ||
+      !existingUser.verificationTokenValidation
+    ) {
+      throw new Error("Verification token not found");
+    }
+
+    if (Date.now() - existingUser.verificationTokenValidation > 1000 * 60 * 5) {
+      throw new Error("Verification code expired");
+    }
+
+    const hashedCodeValue = crypto
+      .createHmac("sha256", codeValue)
+      .update(CODE_SECRET!)
+      .digest("hex");
+
+    if (hashedCodeValue === existingUser.verificationToken) {
+      existingUser.verified = true;
+      existingUser.verificationToken = undefined;
+      existingUser.verificationTokenValidation = undefined;
+      await existingUser.save();
+    }
+  } catch (error) {
+    console.error("Error in verifyVerificationCode:", error);
+    throw error;
+  }
+}
+
+async function changePassword(user: {
+  userId: string;
+  oldPassword: string;
+  newPassword: string;
+}) {
+  try {
+    const existingUser = await User.findOne({ _id: user.userId }).select(
+      "+password +verified"
+    );
+    if (!existingUser) {
+      throw new Error("User does not exist");
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      user.oldPassword,
+      existingUser.password
+    );
+    if (!isPasswordCorrect) {
+      throw new Error("Old password is incorrect");
+    }
+
+    if (!existingUser.verified) {
+      throw new Error("User is not verified");
+    }
+    if (user.oldPassword === user.newPassword) {
+      throw new Error("New password is same as old password");
+    }
+
+    const hashedPassword = await bcrypt.hash(user.newPassword, 10);
+    existingUser.password = hashedPassword;
+    await existingUser.save();
+  } catch (error) {
+    console.error("Error in changePassword:", error);
+    throw error;
+  }
+}
+
+export {
+  createUser,
+  signIn,
+  sendVerificationCode,
+  verifyVerificationCode,
+  changePassword,
+};
