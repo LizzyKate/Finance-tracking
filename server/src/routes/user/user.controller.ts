@@ -4,6 +4,8 @@ const {
   sendVerificationCode,
   verifyVerificationCode,
   changePassword,
+  sendForgotPasswordCode,
+  verifyForgotPasswordCode,
 } = require("../../models/user.model");
 import { validateUser } from "../../middleware/validator";
 import { Request, Response } from "express";
@@ -160,7 +162,7 @@ interface ChangePasswordRequest extends Request {
     userId: string;
   };
   body: {
-    password: string;
+    oldPassword: string;
     newPassword: string;
   };
 }
@@ -170,17 +172,18 @@ async function httpChangePassword(
   res: Response
 ): Promise<Response> {
   const { userId } = req.user;
-  const { password, newPassword } = req.body;
-  if (!password || !newPassword) {
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
     return res
       .status(400)
-      .send({ error: "Password and new password are required" });
+      .send({ error: "Old password and new password are required" });
   }
 
   try {
+    console.log(oldPassword, "p");
     const user = await changePassword({
       userId,
-      password,
+      oldPassword,
       newPassword,
     });
     return res.status(200).json({
@@ -201,6 +204,54 @@ async function httpChangePassword(
   }
 }
 
+async function httpSendForgotPasswordCode(
+  req: { body: { email: string } },
+  res: Response
+): Promise<Response> {
+  const { email } = req.body;
+  try {
+    const user = await sendForgotPasswordCode({ email });
+    return res.status(200).json({
+      sucess: true,
+      message: "Reset code sent sucessfully",
+      user,
+    });
+  } catch (error: any) {
+    if (error.message === "User does not exist") {
+      return res.status(401).send({ error: error.message });
+    }
+    return res.status(500).send({ error: error.message });
+  }
+}
+
+async function httpVerifyForgotPasswordCode(
+  req: { body: { email: string; resetCode: string; newPassword: string } },
+  res: Response
+): Promise<Response> {
+  const { email, resetCode, newPassword } = req.body;
+  try {
+    const user = await verifyForgotPasswordCode({
+      email,
+      resetCode,
+      newPassword,
+    });
+    return res.status(200).json({
+      sucess: true,
+      message: "Password reset sucessfully",
+      user,
+    });
+  } catch (error: any) {
+    if (
+      error.message === "User does not exist" ||
+      error.message === "Forgot password token not found" ||
+      error.message === "Forgot password token expired"
+    ) {
+      return res.status(401).send({ error: error.message });
+    }
+    return res.status(500).send({ error: error.message });
+  }
+}
+
 module.exports = {
   httpCreateNewUser,
   httpSignIn,
@@ -208,4 +259,6 @@ module.exports = {
   httpSendVerificationCode,
   httpVerifyVerificationCode,
   httpChangePassword,
+  httpSendForgotPasswordCode,
+  httpVerifyForgotPasswordCode,
 };

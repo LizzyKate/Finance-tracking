@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { transporter } from "../middleware/sendMail";
 import crypto from "crypto";
-import e from "express";
 
 dotenv.config();
 
@@ -64,7 +63,7 @@ async function signIn(user: UserInput) {
         verified: existingUser.verified,
       },
       JWT_SECRET!,
-      { expiresIn: JWT_EXPIRY }
+      { expiresIn: `${JWT_EXPIRY}s` }
     );
 
     return {
@@ -93,22 +92,19 @@ async function sendVerificationCode(user: { email: string }) {
     const codeValue = Math.floor(Math.random() * 1000000).toString();
     let info = await transporter.sendMail({
       from: process.env.NODE_CODE_SENDING_EMAIL,
-      to: user.email,
+      to: existingUser.email,
       subject: "Verification Code",
       html: `<b>Your verification code is: ${codeValue}</b>`,
     });
-    if (info.accepted[0] === user.email) {
+    if (info.accepted[0] === existingUser.email) {
       const hashedCodeValue = crypto
         .createHmac("sha256", codeValue)
         .update(CODE_SECRET!)
         .digest("hex");
-      await User.updateOne(
-        { email: user.email },
-        {
-          verificationToken: hashedCodeValue,
-          verificationTokenValidation: Date.now(),
-        }
-      );
+
+      existingUser.verificationToken = hashedCodeValue;
+      (existingUser.verificationTokenValidation = Date.now()),
+        await existingUser.save();
       return { message: "Verification code sent" };
     }
   } catch (error) {
@@ -168,15 +164,16 @@ async function changePassword(user: {
   newPassword: string;
 }) {
   try {
-    const existingUser = await User.findOne({ _id: user.userId }).select(
+    const existingUser = await User.findOne({ userId: user.userId }).select(
       "+password +verified"
     );
     if (!existingUser) {
       throw new Error("User does not exist");
     }
+    console.log(user.oldPassword, "old");
 
     const isPasswordCorrect = await bcrypt.compare(
-      user.oldPassword,
+      String(user.oldPassword),
       existingUser.password
     );
     if (!isPasswordCorrect) {
@@ -191,10 +188,87 @@ async function changePassword(user: {
     }
 
     const hashedPassword = await bcrypt.hash(user.newPassword, 10);
+    console.log(hashedPassword, "hashedPassword");
     existingUser.password = hashedPassword;
     await existingUser.save();
   } catch (error) {
     console.error("Error in changePassword:", error);
+    throw error;
+  }
+}
+
+async function sendForgotPasswordCode(user: { email: string }) {
+  try {
+    const existingUser = await User.findOne({ email: user.email });
+
+    if (!existingUser) {
+      throw new Error("User does not exist");
+    }
+    const codeValue = Math.floor(Math.random() * 1000000).toString();
+    let info = await transporter.sendMail({
+      from: process.env.NODE_CODE_SENDING_EMAIL,
+      to: existingUser.email,
+      subject: "Forgot Password Code",
+      html: `<b>Use this token to reset your password: ${codeValue}</b>`,
+    });
+
+    if (info.accepted[0] === existingUser.email) {
+      const hashedCodeValue = crypto
+        .createHmac("sha256", codeValue)
+        .update(CODE_SECRET!)
+        .digest("hex");
+      existingUser.forgotPasswordToken = hashedCodeValue;
+      existingUser.forgotPasswordTokenValidation = Date.now();
+      await existingUser.save();
+      return { message: "Reset password code has been sent" };
+    }
+  } catch (error) {
+    console.error("forgot password:", error);
+    throw error;
+  }
+}
+
+async function verifyForgotPasswordCode(user: {
+  email: string;
+  resetCode: string;
+  newPassword: string;
+}) {
+  try {
+    const codeValue = user.resetCode;
+    const existingUser = await User.findOne({ email: user.email }).select(
+      "+forgotPasswordToken +forgotPasswordTokenValidation"
+    );
+
+    if (!existingUser) {
+      throw new Error("User does not exist");
+    }
+    if (
+      !existingUser.forgotPasswordToken ||
+      !existingUser.forgotPasswordTokenValidation
+    ) {
+      throw new Error("Forgot password token not found");
+    }
+    if (
+      Date.now() - existingUser.forgotPasswordTokenValidation >
+      1000 * 60 * 5
+    ) {
+      throw new Error("Forgot password token expired");
+    }
+
+    const hashedCodeValue = crypto
+      .createHmac("sha256", codeValue)
+      .update(CODE_SECRET!)
+      .digest("hex");
+
+    const hashNewPassword = await bcrypt.hash(user.newPassword, 10);
+    if (hashedCodeValue === existingUser.forgotPasswordToken) {
+      existingUser.password = hashNewPassword;
+      existingUser.forgotPasswordToken = undefined;
+      existingUser.forgotPasswordTokenValidation = undefined;
+      await existingUser.save();
+    }
+  } catch (error) {
+    console.error("password rest failed:", error);
     throw error;
   }
 }
@@ -205,4 +279,6 @@ export {
   sendVerificationCode,
   verifyVerificationCode,
   changePassword,
+  sendForgotPasswordCode,
+  verifyForgotPasswordCode,
 };
