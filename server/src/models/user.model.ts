@@ -1,6 +1,6 @@
 import { User } from "./user.mongo";
 import { v4 as uuidv4 } from "uuid";
-import bcrypt from "bcrypt";
+import { passwordUtils } from "../utils/bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { transporter } from "../middleware/sendMail";
@@ -27,7 +27,7 @@ async function createUser(user: UserInput) {
       throw new Error("User already exists");
     }
 
-    const hashedPassword = await bcrypt.hash(String(user.password), 10);
+    const hashedPassword = await passwordUtils.hashPassword(user.password);
 
     const newUser = new User({
       email: user.email,
@@ -48,8 +48,8 @@ async function signIn(user: UserInput) {
       throw new Error("User does not exist");
     }
 
-    const isPasswordCorrect = await bcrypt.compare(
-      String(user.password),
+    const isPasswordCorrect = await passwordUtils.comparePasswords(
+      user.password,
       existingUser.password
     );
     if (!isPasswordCorrect) {
@@ -172,8 +172,8 @@ async function changePassword(user: {
     }
     console.log(user.oldPassword, "old");
 
-    const isPasswordCorrect = await bcrypt.compare(
-      String(user.oldPassword),
+    const isPasswordCorrect = await passwordUtils.comparePasswords(
+      user.oldPassword,
       existingUser.password
     );
     if (!isPasswordCorrect) {
@@ -187,7 +187,7 @@ async function changePassword(user: {
       throw new Error("New password is same as old password");
     }
 
-    const hashedPassword = await bcrypt.hash(user.newPassword, 10);
+    const hashedPassword = await passwordUtils.hashPassword(user.newPassword);
     console.log(hashedPassword, "hashedPassword");
     existingUser.password = hashedPassword;
     await existingUser.save();
@@ -260,7 +260,7 @@ async function verifyForgotPasswordCode(user: {
       .update(CODE_SECRET!)
       .digest("hex");
 
-    const hashNewPassword = await bcrypt.hash(user.newPassword, 10);
+    const hashNewPassword = await passwordUtils.hashPassword(user.newPassword);
     if (hashedCodeValue === existingUser.forgotPasswordToken) {
       existingUser.password = hashNewPassword;
       existingUser.forgotPasswordToken = undefined;

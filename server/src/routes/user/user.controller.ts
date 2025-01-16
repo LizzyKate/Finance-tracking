@@ -7,7 +7,15 @@ const {
   sendForgotPasswordCode,
   verifyForgotPasswordCode,
 } = require("../../models/user.model");
-import { validateUser } from "../../middleware/validator";
+import {
+  validateAuthFields,
+  validateVerificationRequest,
+  validateVerificationCode,
+  validateChangePassword,
+  validateForgotPasswordRequest,
+  validateResetPassword,
+  validateRequest,
+} from "../../middleware/validator";
 import { Request, Response } from "express";
 
 interface User {
@@ -30,20 +38,17 @@ async function httpCreateNewUser(
   req: Request,
   res: Response
 ): Promise<Response> {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).send({ error: "Email and password are required" });
-  }
-  try {
-    const { error, value }: ValidationResult = validateUser({
-      email,
-      password,
+  const { error } = validateRequest(validateAuthFields, req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details.map((detail) => detail.message),
     });
-    if (error) {
-      return res
-        .status(401)
-        .send({ success: false, error: error.details[0].message });
-    }
+  }
+
+  const { email, password } = req.body;
+
+  try {
     const newUser: User = await createUser({ email, password });
     return res.status(201).json({
       success: true,
@@ -62,23 +67,17 @@ async function httpSignIn(
   req: { body: { email: string; password: string } },
   res: Response
 ): Promise<Response> {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res
-      .status(400)
-      .send({ success: false, error: "Email and password are required" });
+  const { error } = validateRequest(validateAuthFields, req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details.map((detail) => detail.message),
+    });
   }
 
+  const { email, password } = req.body;
+
   try {
-    const { error, value }: ValidationResult = validateUser({
-      email,
-      password,
-    });
-    if (error) {
-      return res
-        .status(401)
-        .send({ success: false, error: error.details[0].message });
-    }
     const user = await signIn({ email, password });
     const jwtExpiryInSeconds = parseInt(process.env.JWT_EXPIRY || "3600", 10);
 
@@ -113,6 +112,13 @@ async function httpSendVerificationCode(
   req: VerifyUserRequest,
   res: Response
 ): Promise<Response> {
+  const { error } = validateRequest(validateVerificationRequest, req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details.map((detail) => detail.message),
+    });
+  }
   const { email } = req.body;
   try {
     const user = await sendVerificationCode({ email });
@@ -136,6 +142,13 @@ async function httpVerifyVerificationCode(
   req: { body: { email: string; verificationCode: string } },
   res: Response
 ): Promise<Response> {
+  const { error } = validateRequest(validateVerificationCode, req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details.map((detail) => detail.message),
+    });
+  }
   const { email, verificationCode } = req.body;
   try {
     const user = await verifyVerificationCode({ email, verificationCode });
@@ -171,13 +184,16 @@ async function httpChangePassword(
   req: ChangePasswordRequest,
   res: Response
 ): Promise<Response> {
+  const { error } = validateRequest(validateChangePassword, req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details.map((detail) => detail.message),
+    });
+  }
+
   const { userId } = req.user;
   const { oldPassword, newPassword } = req.body;
-  if (!oldPassword || !newPassword) {
-    return res
-      .status(400)
-      .send({ error: "Old password and new password are required" });
-  }
 
   try {
     console.log(oldPassword, "p");
@@ -208,6 +224,14 @@ async function httpSendForgotPasswordCode(
   req: { body: { email: string } },
   res: Response
 ): Promise<Response> {
+  const { error } = validateRequest(validateForgotPasswordRequest, req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details.map((detail) => detail.message),
+    });
+  }
+
   const { email } = req.body;
   try {
     const user = await sendForgotPasswordCode({ email });
@@ -228,6 +252,14 @@ async function httpVerifyForgotPasswordCode(
   req: { body: { email: string; resetCode: string; newPassword: string } },
   res: Response
 ): Promise<Response> {
+  const { error } = validateRequest(validateResetPassword, req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      error: error.details.map((detail) => detail.message),
+    });
+  }
+
   const { email, resetCode, newPassword } = req.body;
   try {
     const user = await verifyForgotPasswordCode({
