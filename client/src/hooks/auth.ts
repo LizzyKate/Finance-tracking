@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
+import { login } from "../services/auth";
 
 export interface LoginProps {
   email: string;
@@ -18,7 +19,7 @@ export interface ForgotPasswordProps {
   resetCode: string;
   newPassword: string;
 }
-export const useLoginSchema = (handleSubmit: (data: LoginProps) => void) => {
+export const useLoginSchema = () => {
   const schema = useForm<LoginProps>({
     resolver: yupResolver(
       yup.object().shape({
@@ -29,12 +30,12 @@ export const useLoginSchema = (handleSubmit: (data: LoginProps) => void) => {
         password: yup
           .string()
           .min(6, "Password must be at least 6 characters")
-          .matches(/[A-Za-z]/, "Password must contain at least one letter")
-          .matches(/[0-9]/, "Password must contain at least one number")
-          .matches(
-            /[^A-Za-z0-9]/,
-            "Password must contain at least one special character"
-          )
+          // .matches(/[A-Za-z]/, "Password must contain at least one letter")
+          // .matches(/[0-9]/, "Password must contain at least one number")
+          // .matches(
+          //   /[^A-Za-z0-9]/,
+          //   "Password must contain at least one special character"
+          // )
           .required("Password is required"),
       })
     ),
@@ -43,7 +44,17 @@ export const useLoginSchema = (handleSubmit: (data: LoginProps) => void) => {
   });
 
   const onSubmit = async (data: LoginProps) => {
-    handleSubmit(data);
+    try {
+      const response = await login(data.email, data.password);
+
+      if (response.success) {
+        console.log("Login successful:", response.message);
+      } else {
+        console.error("Login failed:", response.error);
+      }
+    } catch (error) {
+      console.error("Login error2:", error);
+    }
   };
 
   return {

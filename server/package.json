@@ -9,7 +9,7 @@
     "start": "NODE_ENV=production pm2 start dist/server.js --name server --watch",
     "build": "tsc",
     "prod": "NODE_ENV=production pm2 start dist/server.js --name server",
-    "dev": "pm2 start src/server.ts --name server --watch --exec ts-node",
+    "dev": "pm2 start src/server.ts --name server --watch --interpreter ts-node",
     "stop": "pm2 stop server",
     "restart": "pm2 restart server"
   },

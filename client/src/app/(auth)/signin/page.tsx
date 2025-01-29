@@ -4,16 +4,13 @@ import Input from "@/components/Input";
 import { useLoginSchema, LoginProps } from "@/hooks/auth";
 import React, { useState } from "react";
 
-interface SignInProps {
-  onSubmit: (data: LoginProps) => void;
-}
-
-const SignIn: React.FC<SignInProps> = ({ onSubmit }) => {
-  const form = useLoginSchema(onSubmit);
+const SignIn = () => {
+  const form = useLoginSchema();
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
+    onSubmit,
   } = form;
 
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +21,7 @@ const SignIn: React.FC<SignInProps> = ({ onSubmit }) => {
         <Typography variant="h5" align="center">
           Sign In
         </Typography>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit((data) => onSubmit(data))}>
           <Box sx={{ mt: 2 }}>
             <Input<LoginProps>
               label="Email"
