@@ -18,7 +18,7 @@ userRouter.post("/signout", identifier, httpSignOut);
 userRouter.patch("/verify", identifier, httpSendVerificationCode);
 userRouter.patch("/verify/code", identifier, httpVerifyVerificationCode);
 userRouter.patch("/change-password", identifier, httpChangePassword);
-userRouter.patch("/send-reset-code", httpSendForgotPasswordCode);
+userRouter.post("/send-reset-code", httpSendForgotPasswordCode);
 userRouter.patch("/reset-password", httpVerifyForgotPasswordCode);
 
 module.exports = userRouter;

@@ -19,11 +19,11 @@ const emailSchema = Joi.string().email().required().messages({
 });
 
 const verificationCodeSchema = Joi.string()
-  .length(6)
+  .length(5)
   .pattern(/^\d+$/)
   .required()
   .messages({
-    "string.length": "Verification code must be 6 digits",
+    "string.length": "Verification code must be 5 digits",
     "string.pattern.base": "Verification code must contain only numbers",
     "any.required": "Verification code is required",
   });
