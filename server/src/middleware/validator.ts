@@ -2,15 +2,15 @@ import Joi from "joi";
 // Define a Joi schema for validation (for user input)
 const passwordSchema = Joi.string()
   .min(6)
-  .pattern(new RegExp("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$"))
+  // .pattern(new RegExp("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$"))
   .required()
   .messages({
     "string.min": "Password must be at least 6 characters long",
     "any.required": "Password is required",
     "string.empty": "Password is not allowed to be empty",
     "string.base": "Password must be a string",
-    "string.pattern.base":
-      "Password must contain at least one letter and one number",
+    // "string.pattern.base":
+    //   "Password must contain at least one letter and one number",
   });
 
 const emailSchema = Joi.string().email().required().messages({
@@ -19,11 +19,11 @@ const emailSchema = Joi.string().email().required().messages({
 });
 
 const verificationCodeSchema = Joi.string()
-  .length(6)
+  .length(5)
   .pattern(/^\d+$/)
   .required()
   .messages({
-    "string.length": "Verification code must be 6 digits",
+    "string.length": "Verification code must be 5 digits",
     "string.pattern.base": "Verification code must contain only numbers",
     "any.required": "Verification code is required",
   });

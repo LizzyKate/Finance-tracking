@@ -1,31 +1,36 @@
 "use client";
-import { Button, Box, Typography, Paper, Container } from "@mui/material";
+import {
+  Container,
+  Paper,
+  Typography,
+  Box,
+  Button,
+  Snackbar,
+  Alert,
+} from "@mui/material";
 import Input from "@/components/Input";
-import { useSignUpSchema } from "@/hooks/auth";
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useResetPasswordSchema } from "@/hooks/auth";
+import { useState } from "react";
 
-const SignUp = () => {
-  const router = useRouter();
-  const form = useSignUpSchema();
+const ResetPassword = () => {
+  const form = useResetPasswordSchema();
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
     onSubmit,
+    openSnackbar,
+    handleCloseSnackbar,
+    snackbarMessage,
+    severity,
   } = form;
 
   const [showPassword, setShowPassword] = useState(false);
-
-  const handleSignIn = () => {
-    router.push("/signin");
-  };
-
   return (
     <Container maxWidth="xs">
       <Paper elevation={3} sx={{ padding: 4, marginTop: 5 }}>
         <Typography variant="h5" align="center">
-          Sign Up
+          Reset Password
         </Typography>
         <form onSubmit={handleSubmit((data) => onSubmit(data))}>
           <Box sx={{ mt: 2 }}>
@@ -41,38 +46,32 @@ const SignUp = () => {
               error={errors}
               register={register("email", { required: "Email is required" })}
             />
-          </Box>
-          <Box sx={{ mt: 2 }}>
             <Input
-              label="Password"
-              name="password"
-              type="password"
+              label="Reset Code"
+              name="resetCode"
+              type="number"
               fullWidth
               variant="outlined"
               margin="normal"
-              placeholder="Enter your password"
-              autoComplete="current-password"
+              placeholder="Enter verification code"
+              autoComplete="off"
               error={errors}
-              register={register("password", {
-                required: "Password is required",
+              register={register("resetCode", {
+                required: "Verification code is required",
               })}
-              showPassword={showPassword}
-              setShowPassword={setShowPassword}
             />
-          </Box>
-          <Box sx={{ mt: 2 }}>
             <Input
-              label="Confirm Password"
-              name="confirmPassword"
+              label="New Password"
+              name="newPassword"
               type="password"
               fullWidth
               variant="outlined"
               margin="normal"
-              placeholder="Confirm your password"
-              autoComplete="current-password"
+              placeholder="Enter new password"
+              autoComplete="new-password"
               error={errors}
-              register={register("confirmPassword", {
-                required: "Confirm password is required",
+              register={register("newPassword", {
+                required: "Password is required",
               })}
               showPassword={showPassword}
               setShowPassword={setShowPassword}
@@ -81,27 +80,31 @@ const SignUp = () => {
           <Box sx={{ mt: 2 }}>
             <Button
               type="submit"
-              variant="contained"
-              color="primary"
               fullWidth
+              variant="contained"
               disabled={!isValid}
             >
-              Sign In
-            </Button>
-          </Box>
-          <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
-            <Button
-              variant="text"
-              onClick={handleSignIn}
-              sx={{ textTransform: "none" }}
-            >
-              Have an account? Sign In
+              Reset Password
             </Button>
           </Box>
         </form>
       </Paper>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
 
-export default SignUp;
+export default ResetPassword;

@@ -3,20 +3,27 @@ import { Button, Box, Typography, Paper, Container } from "@mui/material";
 import Input from "@/components/Input";
 import { useLoginSchema, LoginProps } from "@/hooks/auth";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
-interface SignInProps {
-  onSubmit: (data: LoginProps) => void;
-}
-
-const SignIn: React.FC<SignInProps> = ({ onSubmit }) => {
-  const form = useLoginSchema(onSubmit);
+const SignIn = () => {
+  const router = useRouter();
+  const form = useLoginSchema();
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
+    onSubmit,
   } = form;
 
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleSignUp = () => {
+    router.push("/signup");
+  };
+
+  const handleForgotPassword = () => {
+    router.push("/send-reset-code");
+  };
 
   return (
     <Container maxWidth="xs">
@@ -24,7 +31,7 @@ const SignIn: React.FC<SignInProps> = ({ onSubmit }) => {
         <Typography variant="h5" align="center">
           Sign In
         </Typography>
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit((data) => onSubmit(data))}>
           <Box sx={{ mt: 2 }}>
             <Input<LoginProps>
               label="Email"
@@ -56,6 +63,17 @@ const SignIn: React.FC<SignInProps> = ({ onSubmit }) => {
               showPassword={showPassword}
               setShowPassword={setShowPassword}
             />
+            <Button
+              variant="text"
+              onClick={handleForgotPassword}
+              sx={{
+                textTransform: "none",
+                width: "100%",
+                justifyContent: "flex-end",
+              }}
+            >
+              Forgot Password?
+            </Button>
           </Box>
           <Box sx={{ mt: 2 }}>
             <Button
@@ -66,6 +84,15 @@ const SignIn: React.FC<SignInProps> = ({ onSubmit }) => {
               disabled={!isValid}
             >
               Sign In
+            </Button>
+          </Box>
+          <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+            <Button
+              variant="text"
+              onClick={handleSignUp}
+              sx={{ textTransform: "none" }}
+            >
+              Don&apos;t have an account? Sign Up
             </Button>
           </Box>
         </form>
